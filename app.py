@@ -38,7 +38,6 @@ def criar_banco():
     conn.commit()
     conn.close()
 
-
 criar_banco()
 
 
@@ -57,14 +56,14 @@ def login():
 
         if user and check_password_hash(user[2], senha):
             session['usuario'] = username
-            return redirect('/')
+            return redirect('/dashboard')
         else:
             return "Login inválido"
 
     return render_template('login.html')
 
 
-# ================= REGISTRO =================
+# ================= REGISTRAR =================
 @app.route('/registrar', methods=['GET', 'POST'])
 def registrar():
     if request.method == 'POST':
@@ -91,9 +90,10 @@ def logout():
     return redirect('/login')
 
 
-# ================= HOME =================
+# ================= DASHBOARD =================
 @app.route('/')
-def index():
+@app.route('/dashboard')
+def dashboard():
     if 'usuario' not in session:
         return redirect('/login')
 
@@ -105,7 +105,7 @@ def index():
 
     conn.close()
 
-    return render_template('index.html', dados=dados)
+    return render_template('dashboard.html', dados=dados, usuario=session['usuario'])
 
 
 # ================= CADASTRAR MATERIAL =================
@@ -138,10 +138,10 @@ def cadastrar():
     conn.commit()
     conn.close()
 
-    return redirect('/')
+    return redirect('/dashboard')
 
 
-# ================= DEVOLUÇÃO =================
+# ================= DEVOLVER =================
 @app.route('/devolver/<int:id>')
 def devolver(id):
     conn = sqlite3.connect('banco.db')
@@ -162,14 +162,13 @@ def devolver(id):
     conn.commit()
     conn.close()
 
-    return redirect('/')
+    return redirect('/dashboard')
 
 
 # ================= RELATÓRIO =================
 @app.route('/relatorio')
 def relatorio():
     conn = sqlite3.connect('banco.db')
-
     df = pd.read_sql_query("SELECT * FROM registros", conn)
 
     caminho = "relatorio.xlsx"

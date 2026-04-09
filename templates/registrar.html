@@ -1,19 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Registrar</title>
+    <title>Cadastro</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
+<body class="login-body">
 
-<h2>Cadastrar Usuário</h2>
+<div class="login-container">
+    <div class="login-box">
+        <h1>👤 Criar Conta</h1>
 
-<form method="POST">
-    <input type="text" name="username" placeholder="Usuário" required><br><br>
-    <input type="password" name="senha" placeholder="Senha" required><br><br>
-    <button type="submit">Cadastrar</button>
-</form>
+        <form method="POST">
+            <input type="text" name="username" placeholder="Usuário" required>
+            <input type="password" name="senha" placeholder="Senha" required>
+            <button type="submit">Cadastrar</button>
+        </form>
 
-<a href="/login">Voltar</a>
+        <a href="/login" class="link">Voltar</a>
+    </div>
+</div>
 
 </body>
 </html>

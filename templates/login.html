@@ -1,28 +1,23 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Login - Sistema</title>
+    <title>Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="login-body">
 
 <div class="login-container">
-
     <div class="login-box">
         <h1>🔐 Login</h1>
-        <p>Acesse o sistema</p>
 
         <form method="POST">
             <input type="text" name="username" placeholder="Usuário" required>
             <input type="password" name="senha" placeholder="Senha" required>
-
             <button type="submit">Entrar</button>
         </form>
 
         <a href="/registrar" class="link">Criar conta</a>
     </div>
-
 </div>
 
 </body>

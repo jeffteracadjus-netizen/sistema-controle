@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Admin</title>
+    <title>Painel Admin</title>
 </head>
 <body>
 
-<h1>Painel Admin</h1>
+<h1>👑 Painel Admin</h1>
 
+<h2>Criar Usuário</h2>
 <form method="POST" action="/criar_usuario">
     <input type="text" name="username" placeholder="Usuário" required>
     <input type="password" name="senha" placeholder="Senha" required>
@@ -19,6 +20,36 @@
     <button type="submit">Criar</button>
 </form>
 
+<hr>
+
+<h2>Usuários</h2>
+
+<table border="1">
+    <tr>
+        <th>ID</th>
+        <th>Usuário</th>
+        <th>Tipo</th>
+        <th>Ação</th>
+    </tr>
+
+    {% for u in usuarios %}
+    <tr>
+        <td>{{ u[0] }}</td>
+        <td>{{ u[1] }}</td>
+        <td>{{ u[3] }}</td>
+        <td>
+            {% if u[1] != 'admin' %}
+                <a href="/deletar_usuario/{{ u[0] }}">❌ Excluir</a>
+            {% else %}
+                🔒
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+
+</table>
+
+<br>
 <a href="/dashboard">Voltar</a>
 
 </body>

@@ -13,7 +13,6 @@ def criar_banco():
     conn = sqlite3.connect('banco.db')
     cursor = conn.cursor()
 
-    # usuários com tipo
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,7 +22,6 @@ def criar_banco():
     )
     ''')
 
-    # registros
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS registros (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,9 +38,7 @@ def criar_banco():
 
     # cria admin padrão
     cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
-    admin = cursor.fetchone()
-
-    if not admin:
+    if not cursor.fetchone():
         cursor.execute(
             "INSERT INTO usuarios (username, senha, tipo) VALUES (?, ?, ?)",
             ("admin", generate_password_hash("admin123"), "admin")
@@ -179,7 +175,15 @@ def admin():
     if 'usuario' not in session or session['tipo'] != 'admin':
         return "Acesso negado"
 
-    return render_template('admin.html')
+    conn = sqlite3.connect('banco.db')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM usuarios")
+    usuarios = cursor.fetchall()
+
+    conn.close()
+
+    return render_template('admin.html', usuarios=usuarios)
 
 
 # ================= CRIAR USUÁRIO =================
@@ -200,6 +204,28 @@ def criar_usuario():
         (username, senha, tipo)
     )
 
+    conn.commit()
+    conn.close()
+
+    return redirect('/admin')
+
+
+# ================= EXCLUIR USUÁRIO =================
+@app.route('/deletar_usuario/<int:id>')
+def deletar_usuario(id):
+    if session.get('tipo') != 'admin':
+        return "Acesso negado"
+
+    conn = sqlite3.connect('banco.db')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT username FROM usuarios WHERE id = ?", (id,))
+    user = cursor.fetchone()
+
+    if user and user[0] == 'admin':
+        return "Não pode excluir o admin principal"
+
+    cursor.execute("DELETE FROM usuarios WHERE id = ?", (id,))
     conn.commit()
     conn.close()
 

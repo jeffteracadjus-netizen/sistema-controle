@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin</title>
+</head>
+<body>
+
+<h1>Painel Admin</h1>
+
+<form method="POST" action="/criar_usuario">
+    <input type="text" name="username" placeholder="Usuário" required>
+    <input type="password" name="senha" placeholder="Senha" required>
+
+    <select name="tipo">
+        <option value="funcionario">Funcionário</option>
+        <option value="admin">Admin</option>
+    </select>
+
+    <button type="submit">Criar</button>
+</form>
+
+<a href="/dashboard">Voltar</a>
+
+</body>
+</html>

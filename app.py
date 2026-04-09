@@ -13,14 +13,17 @@ def criar_banco():
     conn = sqlite3.connect('banco.db')
     cursor = conn.cursor()
 
+    # usuários com tipo
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS usuarios (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
-        senha TEXT
+        senha TEXT,
+        tipo TEXT
     )
     ''')
 
+    # registros
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS registros (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,6 +37,16 @@ def criar_banco():
         usuario TEXT
     )
     ''')
+
+    # cria admin padrão
+    cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
+    admin = cursor.fetchone()
+
+    if not admin:
+        cursor.execute(
+            "INSERT INTO usuarios (username, senha, tipo) VALUES (?, ?, ?)",
+            ("admin", generate_password_hash("admin123"), "admin")
+        )
 
     conn.commit()
     conn.close()
@@ -55,7 +68,8 @@ def login():
         user = cursor.fetchone()
 
         if user and check_password_hash(user[2], senha):
-            session['usuario'] = username
+            session['usuario'] = user[1]
+            session['tipo'] = user[3]
             return redirect('/dashboard')
         else:
             return "Login inválido"
@@ -63,30 +77,10 @@ def login():
     return render_template('login.html')
 
 
-# ================= REGISTRAR =================
-@app.route('/registrar', methods=['GET', 'POST'])
-def registrar():
-    if request.method == 'POST':
-        username = request.form['username']
-        senha = generate_password_hash(request.form['senha'])
-
-        conn = sqlite3.connect('banco.db')
-        cursor = conn.cursor()
-
-        try:
-            cursor.execute("INSERT INTO usuarios (username, senha) VALUES (?, ?)", (username, senha))
-            conn.commit()
-            return redirect('/login')
-        except:
-            return "Usuário já existe"
-
-    return render_template('registrar.html')
-
-
 # ================= LOGOUT =================
 @app.route('/logout')
 def logout():
-    session.pop('usuario', None)
+    session.clear()
     return redirect('/login')
 
 
@@ -105,7 +99,7 @@ def dashboard():
 
     conn.close()
 
-    return render_template('dashboard.html', dados=dados, usuario=session['usuario'])
+    return render_template('dashboard.html', dados=dados)
 
 
 # ================= CADASTRAR MATERIAL =================
@@ -177,6 +171,39 @@ def relatorio():
     conn.close()
 
     return send_file(caminho, as_attachment=True)
+
+
+# ================= ADMIN =================
+@app.route('/admin')
+def admin():
+    if 'usuario' not in session or session['tipo'] != 'admin':
+        return "Acesso negado"
+
+    return render_template('admin.html')
+
+
+# ================= CRIAR USUÁRIO =================
+@app.route('/criar_usuario', methods=['POST'])
+def criar_usuario():
+    if session.get('tipo') != 'admin':
+        return "Acesso negado"
+
+    username = request.form['username']
+    senha = generate_password_hash(request.form['senha'])
+    tipo = request.form['tipo']
+
+    conn = sqlite3.connect('banco.db')
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "INSERT INTO usuarios (username, senha, tipo) VALUES (?, ?, ?)",
+        (username, senha, tipo)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return redirect('/admin')
 
 
 if __name__ == '__main__':

@@ -1,68 +1,91 @@
-<p>👤 Logado como: {{ usuario }}</p>
-<a href="/logout">Sair</a>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
 
-<link rel="stylesheet" href="/static/style.css">
+<body>
 
 <div class="container">
 
-    <div class="sidebar">
-        <img src="/static/logo.png" class="logo">
-        <h3>Empresa</h3>
+    <!-- HEADER -->
+    <div class="header">
+        <h1>📊 Sistema de Controle</h1>
 
-        <a href="/dashboard">🏠 Dashboard</a>
-        <a href="/relatorio">📊 Relatório</a>
+        <div class="user-info">
+            <span>👤 {{ session['usuario'] }} ({{ session['tipo'] }})</span>
+
+            {% if session['tipo'] == 'admin' %}
+                <a href="/admin" class="btn">Admin</a>
+            {% endif %}
+
+            <a href="/relatorio" class="btn">📥 Relatório</a>
+            <a href="/logout" class="btn logout">Sair</a>
+        </div>
     </div>
 
-    <div class="main">
+    <!-- FORM -->
+    <div class="card">
+        <h2>📦 Registrar Material</h2>
 
-        <div class="header">
-            <h2>🚀 Controle de Materiais</h2>
-        </div>
+        <form method="POST" action="/cadastrar">
+            <input type="text" name="nome" placeholder="Nome" required>
+            <input type="text" name="telefone" placeholder="Telefone" required>
+            <input type="text" name="material" placeholder="Material" required>
 
-        <div class="card">
-            <h3>Registrar Material</h3>
+            <button type="submit">Registrar</button>
+        </form>
+    </div>
 
-            <form method="POST">
-                <input name="nome" placeholder="Nome">
-                <input name="telefone" placeholder="Telefone">
-                <input name="material" placeholder="Material">
-                <button>Registrar</button>
-            </form>
-        </div>
+    <!-- TABELA -->
+    <div class="card">
+        <h2>📋 Registros</h2>
 
-        <div class="card">
-            <h3>Registros</h3>
-
-            <table>
+        <table>
+            <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Nome</th>
                     <th>Telefone</th>
                     <th>Material</th>
                     <th>Saída</th>
                     <th>Devolução</th>
+                    <th>Usuário</th>
                     <th>Ação</th>
                 </tr>
+            </thead>
 
+            <tbody>
                 {% for d in dados %}
                 <tr>
-                    <td>{{d[0]}}</td>
-                    <td>{{d[1]}}</td>
-                    <td>{{d[2]}}</td>
-                    <td>{{d[3]}}</td>
-                    <td>{{d[4]}}</td>
-                    <td>{{d[5]}}</td>
+                    <td>{{ d[1] }}</td>
+                    <td>{{ d[2] }}</td>
+                    <td>{{ d[3] }}</td>
+                    <td>{{ d[4] }} {{ d[5] }}</td>
                     <td>
-                        {% if d[5] == "PENDENTE" %}
-                        <a href="/devolver/{{d[0]}}" class="btn-devolver">✔</a>
+                        {% if d[6] %}
+                            {{ d[6] }} {{ d[7] }}
+                        {% else %}
+                            Em uso
                         {% endif %}
-                        <a href="/excluir/{{d[0]}}" class="btn-excluir">🗑️</a>
+                    </td>
+                    <td>{{ d[8] }}</td>
+
+                    <td>
+                        {% if not d[6] %}
+                            <a href="/devolver/{{ d[0] }}" class="btn devolver">Devolver</a>
+                        {% else %}
+                            ✔
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
-            </table>
-
-        </div>
-
+            </tbody>
+        </table>
     </div>
+
 </div>
+
+</body>
+</html>

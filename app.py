@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, session, send_file
-import sqlite3
+import psycopg2
+import os
 from werkzeug.security import generate_password_hash, check_password_hash
 import pandas as pd
 from datetime import datetime
@@ -8,23 +9,30 @@ app = Flask(__name__)
 app.secret_key = 'sua_chave_secreta'
 
 
-# ================= BANCO =================
+# ================= CONEXÃO POSTGRES =================
+def conectar():
+    return psycopg2.connect(
+        os.getenv("DATABASE_URL"),
+        sslmode='require'
+    )
+
+# ================= CRIAR BANCO =================
 def criar_banco():
-    conn = sqlite3.connect('banco.db')
+    conn = conectar()
     cursor = conn.cursor()
 
-    cursor.execute('''
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS usuarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         username TEXT UNIQUE,
         senha TEXT,
         tipo TEXT
     )
-    ''')
+    """)
 
-    cursor.execute('''
+    cursor.execute("""
     CREATE TABLE IF NOT EXISTS registros (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         nome TEXT,
         telefone TEXT,
         material TEXT,
@@ -34,14 +42,13 @@ def criar_banco():
         hora_devolucao TEXT,
         usuario TEXT
     )
-    ''')
+    """)
 
-    # cria admin padrão
-    cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
+    cursor.execute("SELECT * FROM usuarios WHERE username = %s", ('admin',))
     if not cursor.fetchone():
         cursor.execute(
-            "INSERT INTO usuarios (username, senha, tipo) VALUES (?, ?, ?)",
-            ("admin", generate_password_hash("admin123"), "admin")
+            "INSERT INTO usuarios (username, senha, tipo) VALUES (%s, %s, %s)",
+            ('admin', generate_password_hash('admin123'), 'admin')
         )
 
     conn.commit()
@@ -57,10 +64,10 @@ def login():
         username = request.form['username']
         senha = request.form['senha']
 
-        conn = sqlite3.connect('banco.db')
+        conn = conectar()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM usuarios WHERE username = ?", (username,))
+        cursor.execute("SELECT * FROM usuarios WHERE username = %s", (username,))
         user = cursor.fetchone()
 
         if user and check_password_hash(user[2], senha):
@@ -87,10 +94,10 @@ def dashboard():
     if 'usuario' not in session:
         return redirect('/login')
 
-    conn = sqlite3.connect('banco.db')
+    conn = conectar()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM registros")
+    cursor.execute("SELECT * FROM registros ORDER BY id DESC")
     dados = cursor.fetchall()
 
     conn.close()
@@ -98,7 +105,7 @@ def dashboard():
     return render_template('dashboard.html', dados=dados)
 
 
-# ================= CADASTRAR MATERIAL =================
+# ================= CADASTRAR =================
 @app.route('/cadastrar', methods=['POST'])
 def cadastrar():
     if 'usuario' not in session:
@@ -110,13 +117,13 @@ def cadastrar():
 
     agora = datetime.now()
 
-    conn = sqlite3.connect('banco.db')
+    conn = conectar()
     cursor = conn.cursor()
 
-    cursor.execute('''
+    cursor.execute("""
     INSERT INTO registros (nome, telefone, material, data_saida, hora_saida, usuario)
-    VALUES (?, ?, ?, ?, ?, ?)
-    ''', (
+    VALUES (%s, %s, %s, %s, %s, %s)
+    """, (
         nome,
         telefone,
         material,
@@ -134,16 +141,16 @@ def cadastrar():
 # ================= DEVOLVER =================
 @app.route('/devolver/<int:id>')
 def devolver(id):
-    conn = sqlite3.connect('banco.db')
+    conn = conectar()
     cursor = conn.cursor()
 
     agora = datetime.now()
 
-    cursor.execute('''
+    cursor.execute("""
     UPDATE registros
-    SET data_devolucao = ?, hora_devolucao = ?
-    WHERE id = ?
-    ''', (
+    SET data_devolucao = %s, hora_devolucao = %s
+    WHERE id = %s
+    """, (
         agora.strftime('%d/%m/%Y'),
         agora.strftime('%H:%M'),
         id
@@ -158,7 +165,8 @@ def devolver(id):
 # ================= RELATÓRIO =================
 @app.route('/relatorio')
 def relatorio():
-    conn = sqlite3.connect('banco.db')
+    conn = conectar()
+
     df = pd.read_sql_query("SELECT * FROM registros", conn)
 
     caminho = "relatorio.xlsx"
@@ -175,10 +183,10 @@ def admin():
     if 'usuario' not in session or session['tipo'] != 'admin':
         return "Acesso negado"
 
-    conn = sqlite3.connect('banco.db')
+    conn = conectar()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM usuarios")
+    cursor.execute("SELECT * FROM usuarios ORDER BY id")
     usuarios = cursor.fetchall()
 
     conn.close()
@@ -196,13 +204,13 @@ def criar_usuario():
     senha = generate_password_hash(request.form['senha'])
     tipo = request.form['tipo']
 
-    conn = sqlite3.connect('banco.db')
+    conn = conectar()
     cursor = conn.cursor()
 
-    cursor.execute(
-        "INSERT INTO usuarios (username, senha, tipo) VALUES (?, ?, ?)",
-        (username, senha, tipo)
-    )
+    cursor.execute("""
+    INSERT INTO usuarios (username, senha, tipo)
+    VALUES (%s, %s, %s)
+    """, (username, senha, tipo))
 
     conn.commit()
     conn.close()
@@ -216,16 +224,16 @@ def deletar_usuario(id):
     if session.get('tipo') != 'admin':
         return "Acesso negado"
 
-    conn = sqlite3.connect('banco.db')
+    conn = conectar()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT username FROM usuarios WHERE id = ?", (id,))
+    cursor.execute("SELECT username FROM usuarios WHERE id = %s", (id,))
     user = cursor.fetchone()
 
     if user and user[0] == 'admin':
         return "Não pode excluir o admin principal"
 
-    cursor.execute("DELETE FROM usuarios WHERE id = ?", (id,))
+    cursor.execute("DELETE FROM usuarios WHERE id = %s", (id,))
     conn.commit()
     conn.close()
 

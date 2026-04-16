@@ -14,12 +14,11 @@ def conectar():
         sslmode='require'
     )
 
-# 🧱 CRIAR TABELAS + AJUSTAR BANCO
+# 🧱 CRIAR / ATUALIZAR BANCO
 def criar_tabelas():
     conn = conectar()
     cursor = conn.cursor()
 
-    # Tabela usuarios (sem tipo inicialmente)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS usuarios (
         id SERIAL PRIMARY KEY,
@@ -28,12 +27,10 @@ def criar_tabelas():
     )
     """)
 
-    # Adiciona coluna tipo se não existir
     cursor.execute("""
     ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT 'funcionario'
     """)
 
-    # Tabela registros
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS registros (
         id SERIAL PRIMARY KEY,
@@ -45,14 +42,13 @@ def criar_tabelas():
     )
     """)
 
-    # Cria admin se não existir
+    # ADMIN
     cursor.execute("""
     INSERT INTO usuarios (username, password, tipo)
     VALUES ('admin', '1234', 'admin')
     ON CONFLICT (username) DO NOTHING
     """)
 
-    # Garante que admin sempre seja admin
     cursor.execute("""
     UPDATE usuarios SET tipo='admin' WHERE username='admin'
     """)
@@ -61,7 +57,7 @@ def criar_tabelas():
     cursor.close()
     conn.close()
 
-# 🚨 IMPORTANTE: CHAMA A FUNÇÃO
+# 🔥 CHAMA AO INICIAR
 criar_tabelas()
 
 # 🔐 LOGIN
@@ -75,7 +71,7 @@ def login():
         cursor = conn.cursor()
 
         cursor.execute(
-            "SELECT username, tipo FROM usuarios WHERE username=%s AND password=%s",
+            "SELECT id, username, tipo FROM usuarios WHERE username=%s AND password=%s",
             (username, password)
         )
         user = cursor.fetchone()
@@ -84,8 +80,8 @@ def login():
         conn.close()
 
         if user:
-            session["usuario"] = user[0]
-            session["tipo"] = user[1]
+            session["usuario"] = user[1]
+            session["tipo"] = user[2]
             return redirect("/dashboard")
         else:
             return "Usuário ou senha inválidos"
@@ -97,7 +93,7 @@ def login():
 def registrar():
     return redirect("/")
 
-# 👑 ADMIN CRIA USUÁRIO
+# 👑 CRIAR USUÁRIO
 @app.route("/criar_usuario", methods=["POST"])
 def criar_usuario():
     if session.get("tipo") != "admin":
@@ -125,6 +121,23 @@ def criar_usuario():
 
     return redirect("/dashboard")
 
+# ❌ EXCLUIR USUÁRIO
+@app.route("/excluir_usuario/<int:id>")
+def excluir_usuario(id):
+    if session.get("tipo") != "admin":
+        return "Acesso negado"
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM usuarios WHERE id = %s AND username != 'admin'", (id,))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return redirect("/dashboard")
+
 # 📊 DASHBOARD
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
@@ -134,6 +147,7 @@ def dashboard():
     conn = conectar()
     cursor = conn.cursor()
 
+    # REGISTRO DE MATERIAL
     if request.method == "POST":
         nome = request.form["nome"]
         telefone = request.form["telefone"]
@@ -145,13 +159,18 @@ def dashboard():
         )
         conn.commit()
 
+    # DADOS
     cursor.execute("SELECT nome, telefone, material, saida, devolucao FROM registros")
     dados = cursor.fetchall()
+
+    # USUÁRIOS (ADMIN)
+    cursor.execute("SELECT id, username, tipo FROM usuarios")
+    usuarios = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
-    return render_template("dashboard.html", dados=dados)
+    return render_template("dashboard.html", dados=dados, usuarios=usuarios)
 
 # 📥 RELATÓRIO
 @app.route("/relatorio")
@@ -177,6 +196,7 @@ def logout():
     session.clear()
     return redirect("/")
 
+# 🚀 RODAR LOCAL / RENDER
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)

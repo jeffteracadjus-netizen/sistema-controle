@@ -2,4 +2,4 @@ flask
 psycopg2-binary
 pandas
 openpyxl
-werkzeug
+gunicorn

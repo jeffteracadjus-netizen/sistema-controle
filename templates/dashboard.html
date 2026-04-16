@@ -9,6 +9,8 @@
 <div class="container">
     <h1>🚀 Controle de Materiais</h1>
 
+    <p>Usuário: {{ session["usuario"] }}</p>
+
     <form method="POST" class="form">
         <input name="nome" placeholder="Nome" required>
         <input name="telefone" placeholder="Telefone" required>
@@ -36,7 +38,21 @@
         {% endfor %}
     </table>
 
-    <a href="/relatorio">📥 Baixar Relatório</a>
+    <!-- 👑 ÁREA ADMIN -->
+    {% if session["tipo"] == "admin" %}
+    <div style="margin-top:30px;">
+        <h3>👑 Criar Funcionário</h3>
+
+        <form method="POST" action="/criar_usuario">
+            <input name="username" placeholder="Usuário" required>
+            <input name="password" placeholder="Senha" required>
+            <button>Criar</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <br>
+    <a href="/relatorio">📥 Baixar Relatório</a><br>
     <a href="/logout">🚪 Sair</a>
 </div>
 

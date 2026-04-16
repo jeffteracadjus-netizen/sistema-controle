@@ -7,14 +7,14 @@ import pandas as pd
 app = Flask(__name__)
 app.secret_key = "segredo_super_seguro"
 
-# 🔗 CONEXÃO COM POSTGRESQL (RENDER)
+# 🔗 CONEXÃO
 def conectar():
     return psycopg2.connect(
         os.getenv("DATABASE_URL"),
         sslmode='require'
     )
 
-# 🧱 CRIAR TABELAS AUTOMATICAMENTE
+# 🧱 CRIAR TABELAS + ADMIN
 def criar_tabelas():
     conn = conectar()
     cursor = conn.cursor()
@@ -23,7 +23,8 @@ def criar_tabelas():
     CREATE TABLE IF NOT EXISTS usuarios (
         id SERIAL PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        tipo TEXT DEFAULT 'funcionario'
     )
     """)
 
@@ -36,6 +37,13 @@ def criar_tabelas():
         saida TIMESTAMP,
         devolucao TIMESTAMP
     )
+    """)
+
+    # 👑 CRIA ADMIN AUTOMÁTICO
+    cursor.execute("""
+    INSERT INTO usuarios (username, password, tipo)
+    VALUES ('admin', '1234', 'admin')
+    ON CONFLICT (username) DO NOTHING
     """)
 
     conn.commit()
@@ -54,43 +62,51 @@ def login():
         conn = conectar()
         cursor = conn.cursor()
 
-        cursor.execute("SELECT * FROM usuarios WHERE username=%s AND password=%s", (username, password))
+        cursor.execute(
+            "SELECT username, tipo FROM usuarios WHERE username=%s AND password=%s",
+            (username, password)
+        )
         user = cursor.fetchone()
 
         cursor.close()
         conn.close()
 
         if user:
-            session["usuario"] = username
+            session["usuario"] = user[0]
+            session["tipo"] = user[1]
             return redirect("/dashboard")
+        else:
+            return "Usuário ou senha inválidos"
 
     return render_template("login.html")
 
-# 📝 REGISTRAR USUÁRIO
-@app.route("/registrar", methods=["GET", "POST"])
+# 🚫 BLOQUEAR REGISTRO PÚBLICO
+@app.route("/registrar")
 def registrar():
-    if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
+    return redirect("/")
 
-        conn = conectar()
-        cursor = conn.cursor()
+# 👑 ADMIN CRIA USUÁRIO
+@app.route("/criar_usuario", methods=["POST"])
+def criar_usuario():
+    if session.get("tipo") != "admin":
+        return "Acesso negado"
 
-        try:
-            cursor.execute(
-                "INSERT INTO usuarios (username, password) VALUES (%s, %s)",
-                (username, password)
-            )
-            conn.commit()
-        except:
-            pass
+    username = request.form["username"]
+    password = request.form["password"]
 
-        cursor.close()
-        conn.close()
+    conn = conectar()
+    cursor = conn.cursor()
 
-        return redirect("/")
+    cursor.execute(
+        "INSERT INTO usuarios (username, password) VALUES (%s, %s)",
+        (username, password)
+    )
 
-    return render_template("registrar.html")
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return redirect("/dashboard")
 
 # 📊 DASHBOARD
 @app.route("/dashboard", methods=["GET", "POST"])
@@ -120,7 +136,7 @@ def dashboard():
 
     return render_template("dashboard.html", dados=dados)
 
-# 📥 RELATÓRIO EXCEL
+# 📥 RELATÓRIO
 @app.route("/relatorio")
 def relatorio():
     conn = conectar()

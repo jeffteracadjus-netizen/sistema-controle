@@ -14,20 +14,26 @@ def conectar():
         sslmode='require'
     )
 
-# 🧱 CRIAR TABELAS + ADMIN
+# 🧱 CRIAR TABELAS + AJUSTAR BANCO
 def criar_tabelas():
     conn = conectar()
     cursor = conn.cursor()
 
+    # Tabela usuarios (sem tipo inicialmente)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS usuarios (
         id SERIAL PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        tipo TEXT DEFAULT 'funcionario'
+        password TEXT NOT NULL
     )
     """)
 
+    # Adiciona coluna tipo se não existir
+    cursor.execute("""
+    ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS tipo TEXT DEFAULT 'funcionario'
+    """)
+
+    # Tabela registros
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS registros (
         id SERIAL PRIMARY KEY,
@@ -39,17 +45,23 @@ def criar_tabelas():
     )
     """)
 
-    # 👑 CRIA ADMIN AUTOMÁTICO
+    # Cria admin se não existir
     cursor.execute("""
     INSERT INTO usuarios (username, password, tipo)
     VALUES ('admin', '1234', 'admin')
     ON CONFLICT (username) DO NOTHING
     """)
 
+    # Garante que admin sempre seja admin
+    cursor.execute("""
+    UPDATE usuarios SET tipo='admin' WHERE username='admin'
+    """)
+
     conn.commit()
     cursor.close()
     conn.close()
 
+# 🚨 IMPORTANTE: CHAMA A FUNÇÃO
 criar_tabelas()
 
 # 🔐 LOGIN
@@ -97,12 +109,17 @@ def criar_usuario():
     conn = conectar()
     cursor = conn.cursor()
 
-    cursor.execute(
-        "INSERT INTO usuarios (username, password) VALUES (%s, %s)",
-        (username, password)
-    )
+    try:
+        cursor.execute(
+            "INSERT INTO usuarios (username, password) VALUES (%s, %s)",
+            (username, password)
+        )
+        conn.commit()
+    except:
+        cursor.close()
+        conn.close()
+        return "Usuário já existe"
 
-    conn.commit()
     cursor.close()
     conn.close()
 

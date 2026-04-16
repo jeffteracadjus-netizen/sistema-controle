@@ -1,103 +1,43 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
-
 <body>
 
 <div class="container">
+    <h1>🚀 Controle de Materiais</h1>
 
-    <!-- HEADER -->
-    <div class="header">
-        <h1>📊 Sistema de Controle de Materiais</h1>
+    <form method="POST" class="form">
+        <input name="nome" placeholder="Nome" required>
+        <input name="telefone" placeholder="Telefone" required>
+        <input name="material" placeholder="Material" required>
+        <button>Registrar</button>
+    </form>
 
-        <div class="user-info">
-            <span>👤 {{ session['usuario'] }} ({{ session['tipo'] }})</span>
+    <table>
+        <tr>
+            <th>Nome</th>
+            <th>Telefone</th>
+            <th>Material</th>
+            <th>Saída</th>
+            <th>Devolução</th>
+        </tr>
 
-            {% if session['tipo'] == 'admin' %}
-                <a href="/admin" class="btn">👑 Admin</a>
-            {% endif %}
+        {% for d in dados %}
+        <tr>
+            <td>{{ d[0] }}</td>
+            <td>{{ d[1] }}</td>
+            <td>{{ d[2] }}</td>
+            <td>{{ d[3] }}</td>
+            <td>{{ d[4] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 
-            <a href="/relatorio" class="btn">📥 Relatório</a>
-            <a href="/logout" class="btn logout">Sair</a>
-        </div>
-    </div>
-
-    <!-- FORMULÁRIO -->
-    <div class="card">
-        <h2>📦 Registrar Retirada</h2>
-
-        <form method="POST" action="/cadastrar" class="form-grid">
-            <input type="text" name="nome" placeholder="Nome do funcionário" required>
-            <input type="text" name="telefone" placeholder="Telefone" required>
-            <input type="text" name="material" placeholder="Material retirado" required>
-
-            <button type="submit">Registrar</button>
-        </form>
-    </div>
-
-    <!-- TABELA -->
-    <div class="card">
-        <h2>📋 Controle de Materiais</h2>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Telefone</th>
-                    <th>Material</th>
-                    <th>Saída</th>
-                    <th>Devolução</th>
-                    <th>Registrado por</th>
-                    <th>Status</th>
-                    <th>Ação</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                {% for d in dados %}
-                <tr>
-                    <td>{{ d[1] }}</td>
-                    <td>{{ d[2] }}</td>
-                    <td>{{ d[3] }}</td>
-
-                    <td>{{ d[4] }} {{ d[5] }}</td>
-
-                    <td>
-                        {% if d[6] %}
-                            {{ d[6] }} {{ d[7] }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-
-                    <td>{{ d[8] }}</td>
-
-                    <td>
-                        {% if d[6] %}
-                            <span class="status entregue">✔ Devolvido</span>
-                        {% else %}
-                            <span class="status uso">⏳ Em uso</span>
-                        {% endif %}
-                    </td>
-
-                    <td>
-                        {% if not d[6] %}
-                            <a href="/devolver/{{ d[0] }}" class="btn devolver">Devolver</a>
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-    </div>
-
+    <a href="/relatorio">📥 Baixar Relatório</a>
+    <a href="/logout">🚪 Sair</a>
 </div>
 
 </body>

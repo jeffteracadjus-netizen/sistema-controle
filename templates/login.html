@@ -2,20 +2,21 @@
 <html>
 <head>
     <title>Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="/static/style.css">
 </head>
-<body class="login-body">
+<body class="login-bg">
 
 <div class="login-container">
-    <div class="login-box">
-        <h1>🔐 Login</h1>
+    <h2>🚀 InovaTech Jr</h2>
 
-        <form method="POST">
-            <input type="text" name="username" placeholder="Usuário" required>
-            <input type="password" name="senha" placeholder="Senha" required>
-            <button type="submit">Entrar</button>
-        </form>
-    </div>
+    <form method="POST">
+        <input type="text" name="username" placeholder="Usuário" required>
+        <input type="password" name="password" placeholder="Senha" required>
+
+        <button type="submit">Entrar</button>
+    </form>
+
+    <a href="/registrar">Criar conta</a>
 </div>
 
 </body>

@@ -14,7 +14,7 @@ def conectar():
         sslmode='require'
     )
 
-# 🧱 CRIAR / ATUALIZAR BANCO
+# 🧱 BANCO
 def criar_tabelas():
     conn = conectar()
     cursor = conn.cursor()
@@ -57,7 +57,6 @@ def criar_tabelas():
     cursor.close()
     conn.close()
 
-# 🔥 CHAMA AO INICIAR
 criar_tabelas()
 
 # 🔐 LOGIN
@@ -88,7 +87,7 @@ def login():
 
     return render_template("login.html")
 
-# 🚫 BLOQUEAR REGISTRO PÚBLICO
+# 🚫 BLOQUEIO REGISTRO
 @app.route("/registrar")
 def registrar():
     return redirect("/")
@@ -118,7 +117,6 @@ def criar_usuario():
 
     cursor.close()
     conn.close()
-
     return redirect("/dashboard")
 
 # ❌ EXCLUIR USUÁRIO
@@ -135,6 +133,42 @@ def excluir_usuario(id):
 
     cursor.close()
     conn.close()
+    return redirect("/dashboard")
+
+# 📦 DEVOLVER MATERIAL
+@app.route("/devolver/<int:id>")
+def devolver(id):
+    if "usuario" not in session:
+        return redirect("/")
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "UPDATE registros SET devolucao = %s WHERE id = %s",
+        (datetime.now(), id)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return redirect("/dashboard")
+
+# ❌ EXCLUIR REGISTRO
+@app.route("/excluir_registro/<int:id>")
+def excluir_registro(id):
+    if "usuario" not in session:
+        return redirect("/")
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM registros WHERE id = %s", (id,))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
 
     return redirect("/dashboard")
 
@@ -147,7 +181,7 @@ def dashboard():
     conn = conectar()
     cursor = conn.cursor()
 
-    # REGISTRO DE MATERIAL
+    # REGISTRAR MATERIAL
     if request.method == "POST":
         nome = request.form["nome"]
         telefone = request.form["telefone"]
@@ -160,10 +194,10 @@ def dashboard():
         conn.commit()
 
     # DADOS
-    cursor.execute("SELECT nome, telefone, material, saida, devolucao FROM registros")
+    cursor.execute("SELECT id, nome, telefone, material, saida, devolucao FROM registros")
     dados = cursor.fetchall()
 
-    # USUÁRIOS (ADMIN)
+    # USUÁRIOS
     cursor.execute("SELECT id, username, tipo FROM usuarios")
     usuarios = cursor.fetchall()
 
@@ -196,7 +230,7 @@ def logout():
     session.clear()
     return redirect("/")
 
-# 🚀 RODAR LOCAL / RENDER
+# 🚀 RENDER
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
